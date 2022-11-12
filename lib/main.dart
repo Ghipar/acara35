@@ -1,6 +1,5 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
+// ignore: import_of_legacy_library_into_null_safe
 import 'package:cached_network_image/cached_network_image.dart';
 import 'data/api_provider.dart';
 import 'model/popular_movies.dart';
@@ -16,17 +15,12 @@ class MoviesApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.indigo,
       ),
-      home: Home(
-        title: '',
-      ),
+      home: Home(),
     );
   }
 }
 
 class Home extends StatefulWidget {
-  const Home({Key? key, required this.title}) : super(key: key);
-  final String title;
-
   @override
   _HomeState createState() => _HomeState();
 }
@@ -62,7 +56,7 @@ class _HomeState extends State<Home> {
                     title: '${snapshot.data.results[index].title}',
                     date: '${snapshot.data.results[index].releaseDate}',
                     voteAverage: '${snapshot.data.results[index].voteAverage}',
-                    ontap: () {
+                    onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
                           builder: (context) => MovieDetail(
                               movie: snapshot.data.results[index])));
@@ -86,9 +80,9 @@ class _HomeState extends State<Home> {
       required String title,
       required String date,
       required String voteAverage,
-      required Function()? ontap}) {
+      required Function()? onTap}) {
     return InkWell(
-      onTap: ontap,
+      onTap: onTap,
       child: Container(
         margin: EdgeInsets.all(10),
         child: Card(
