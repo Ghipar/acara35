@@ -1,89 +1,176 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'data/api_provider.dart';
+import 'model/popular_movies.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(MoviesApp());
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class MoviesApp extends StatelessWidget {
+  const MoviesApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Movie App',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.indigo,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: Home(
+        title: '',
+      ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+class Home extends StatefulWidget {
+  const Home({Key? key, required this.title}) : super(key: key);
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _HomeState createState() => _HomeState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomeState extends State<Home> {
+  ApiProvider apiProvider = ApiProvider();
+  late Future<PopularMovies> popularMovies;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+  String imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+  @override
+  void initState() {
+    popularMovies = apiProvider.getPopularMovies();
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text('Movies App'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+      body: FutureBuilder(
+          future: popularMovies,
+          builder: (BuildContext context, AsyncSnapshot snapshot) {
+            if (snapshot.hasData) {
+              print("Has Data: ${snapshot.hasData}");
+              return ListView.builder(
+                itemCount: snapshot.data.results.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return moviesItem(
+                    poster:
+                        '$imageBaseUrl${snapshot.data.results[index].posterPath}',
+                    title: '${snapshot.data.results[index].title}',
+                    date: '${snapshot.data.results[index].releaseDate}',
+                    voteAverage: '${snapshot.data.results[index].voteAverage}',
+                    ontap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => MovieDetail(
+                              movie: snapshot.data.results[index])));
+                    },
+                  );
+                },
+              );
+            } else if (snapshot.hasError) {
+              print("Has Error: ${snapshot.hasError}");
+              return Text('Error!!!');
+            } else {
+              print("Loading...");
+              return CircularProgressIndicator();
+            }
+          }),
+    );
+  }
+
+  Widget moviesItem(
+      {required String poster,
+      required String title,
+      required String date,
+      required String voteAverage,
+      required Function()? ontap}) {
+    return InkWell(
+      onTap: ontap,
+      child: Container(
+        margin: EdgeInsets.all(10),
+        child: Card(
+          child: Container(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  width: 120,
+                  child: CachedNetworkImage(imageUrl: poster),
+                ),
+                SizedBox(
+                  width: 20,
+                ),
+                Expanded(
+                    child: Container(
+                  margin: EdgeInsets.only(top: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.calendar_today,
+                            size: 12,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Text(date),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.star,
+                            size: 12,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Text(voteAverage),
+                        ],
+                      )
+                    ],
+                  ),
+                ))
+              ],
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class MovieDetail extends StatelessWidget {
+  final Results movie;
+
+  const MovieDetail({Key? key, required this.movie}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(movie.title),
+      ),
+      body: Container(
+        child: Text(movie.overview),
+      ),
     );
   }
 }
